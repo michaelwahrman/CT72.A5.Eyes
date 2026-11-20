@@ -1,0 +1,45 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>CT72.A5.Eyes — context file</title><style>body{max-width:900px;margin:24px auto;padding:0 16px;font:15px/1.55 "Segoe UI",Arial,sans-serif;background:#1d1f24;color:#e8e4dc}
+a{color:#e0b46a}h1,h2{color:#e0b46a}blockquote{border-left:3px solid #555;margin:0;padding:2px 12px;color:#cfcac0}
+code,pre{font:13px ui-monospace,Consolas,monospace;background:#2a2d34;border-radius:4px}pre{padding:10px;overflow:auto}code{padding:1px 4px}
+img{max-width:100%;display:block;margin:10px 0;border:1px solid #3a3d46}</style></head><body><h1>CT72.A5.Eyes — context file</h1>
+<p><strong>Series:</strong> CT72 Eyes · <strong>Version:</strong> A5 · <strong>Date:</strong> 2026-11-19 · <strong>Built from:</strong> <code>CT72.A4.Eyes</code> (copied; A1-A4 unchanged; read <code>CT72.A4.Eyes/CT72.A4.Eyes.md</code> for A4 (the timber fix, the steady eyes, the frame-rate work, the corner) and from there A3, A2, A1 and <code>CT61.B6.Darkride.md</code>) · <strong>Art project</strong> (Harness 7).
+Open issues and questions: <a href="ISSUES.html">ISSUES.html</a>. To pick this project up in a later chat, point it at this file.</p>
+<p>© 2026 Michael Wahrman. All rights reserved.</p>
+<h2>Requests (A5, 2026-11-19)</h2>
+<blockquote>
+<ol>
+<li>Please use Sonnet</li>
+<li>Please review CT72.A4.Eyes.md</li>
+<li>Dust can default off, I dont see it.</li>
+<li>The track should be visible even in the dark part</li>
+<li>Mine car can be visible, maybe an option, default to visible</li>
+<li>Not necessary to fade to black</li>
+</ol>
+</blockquote>
+<h2>What A5 changed</h2>
+<ol>
+<li><strong>Sonnet:</strong> this session runs on Sonnet 5.5.</li>
+<li><strong>Dust starts off</strong> (<code>?dust=1</code> or <strong>U</strong> turns it on).</li>
+<li><strong>The track is visible in the dark part.</strong> The light that follows the rails ahead is 2.7 times stronger (80, was 30), reaches 12 m (was 9) and is wider (cone 0.7, was 0.55), and a small warm light now sits just ahead of the camera. The rails, sleepers and the tunnel near you show through the corner to the stop (picture 1). The darkness is less black than in A4 (ISSUES 1).</li>
+<li><strong>The mine car shows, by default.</strong> A1-A4 hid every car. Now all five cars on the track are drawn, yours included: from your seat the rim and inside of your car show at the bottom of the picture, and the cars ahead of you on the track. <strong>Car</strong> button, key <strong>C</strong>, <code>?car=0</code> to start without (the V key looks from behind and above, where the whole car shows). Your seat is 10 cm lower (1.45 m, was 1.55) so the rim is in the picture; at 1.35 the car filled the bottom third and hid the rails. The small light by the camera lights the car so it is not a black shape; it goes off when the car is hidden or Lights is on.</li>
+<li><strong>No fade to black.</strong> The ride simply stops, where it did before, with the rails lit (picture 2). <code>?fade=1</code> brings the A4 fade back. The corner stays. The eyes in the dark now run to the end of the last straight (28 pairs, was 26), so there are eyes close ahead where the ride stops.</li>
+</ol>
+<h2>Checked (2026-11-19, the Claude app's built-in Chromium, localhost, <code>?sound=0</code>)</h2>
+<ul>
+<li><code>node --check</code> on every changed script; no console errors.</li>
+<li>The ride stepped to the end: it stops at 37.5 m with no fade (the sheet's opacity is 0); all 28 pairs open and steady.</li>
+<li>Defaults: dust off, car shown, fade off. <strong>C</strong> hides and shows all five cars; the Car button exists.</li>
+<li>Pictures from the page: the dark corner with the track and car (1), the end (2).</li>
+<li><strong>Not checked:</strong> the frame rate on a real running page (A4's note), a movie, the sound, MIDI hardware (the Car button has no built-in MIDI assignment: right-click it and press a control to learn one), a phone.</li>
+</ul>
+<h2>Liberties taken (please check)</h2>
+<ul>
+<li><strong>Seat 10 cm lower</strong>, a car light, a stronger track light: my choices to make &quot;visible&quot; mean visible. The dark is lighter than A4's.</li>
+<li><strong>Eyes extended to the end of the last straight</strong> (28 pairs).</li>
+<li><strong>Fade kept as an option</strong> (<code>?fade=1</code>), not deleted.</li>
+</ul>
+<h2>Files</h2>
+<p>As A4's, renamed <code>CT72.A5.Eyes_*.js</code>. Changed: <code>CT72.A5.Eyes_main.js</code> (Car, dust and fade defaults, the car light, the stronger track light) · <code>CT72.A5.Eyes_cars.js</code> (seat height) · <code>rooms/dark.js</code> (eyes to the end) · <code>index.html</code> (Car button and help row). URL options: as A4's plus <code>?car=0</code>, <code>?dust=1</code>, <code>?fade=1</code>.</p>
+<p><img src="images/CT72.A5.Eyes_1_dark_corner_track_and_car.jpg" alt="The dark corner: the rails lit, the car's rim at the bottom" title="The dark corner: the rails lit, the car's rim at the bottom" />
+<img src="images/CT72.A5.Eyes_2_the_end_no_fade.jpg" alt="Where the ride stops, no fade" title="Where the ride stops, no fade" /></p>
+</body></html>

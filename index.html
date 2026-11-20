@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CT72.A5 Eyes</title>
+<style>
+  :root {
+    --bar: #23222b; --bar2: #2d2c37; --ink: #f1eef6; --dim: #a9a4b8; --line: #3d3b49;
+    --rose: #f7b5c9; --peach: #ffd2a8; --butter: #f9eaa0; --mint: #b6ecd0; --sky: #b4d6f7; --lilac: #d5c2f5; --red: #ff6f7d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #1b1a21; color: var(--ink); font: 13px/1.3 "Segoe UI", "Helvetica Neue", Arial, sans-serif; overflow: hidden; }
+  body { display: flex; flex-direction: row; }     /* (A2: the picture, then the display on the right) */
+  #stage { position: relative; flex: 1 1 auto; min-height: 0; background: #000; }
+  #c { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: contain; cursor: grab; touch-action: none; }
+  #c.drag { cursor: grabbing; }
+
+  /* HUD, help, toasts: page elements over the picture -- never in the movie */
+  /* A2: the display (info + buttons) is a column on the right of the picture; H shows / hides it (hidden at start, Harness 6) */
+  #side { flex: 0 0 312px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; overflow-x: hidden; background: var(--bar); border-left: 1px solid var(--line); padding: 10px 8px; }
+  body.nobar.nohud #side { display: none; }
+  @media (max-width: 760px) { #side { position: absolute; right: 0; top: 0; bottom: 0; width: min(312px, 86vw); z-index: 7; background: rgba(35, 34, 43, .94); } }
+  #hud { padding: 8px 10px; border-radius: 10px; background: var(--bar2);
+         font: 11px/1.45 ui-monospace, Consolas, Menlo, monospace; white-space: pre-wrap; word-break: break-word; pointer-events: none; color: #f4f1f8; }
+  #hud b { color: var(--butter); font-weight: 600; }
+  #hint { font-size: 11.5px; color: rgba(240, 232, 220, .75); pointer-events: none; line-height: 1.5; padding: 0 4px; }
+  body.nohud #hud, body.nohud #hint { display: none; }
+  #toast { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); max-width: min(760px, 92%); padding: 9px 14px; border-radius: 10px;
+           background: rgba(35, 34, 43, .9); color: var(--ink); font-size: 13px; opacity: 0; transition: opacity .25s; pointer-events: none; text-align: center; }
+  #toast.on { opacity: 1; }
+  #toast a { color: var(--butter); pointer-events: auto; }
+  #recDot { position: absolute; right: 14px; bottom: 12px; padding: 5px 10px; border-radius: 20px; background: rgba(35, 34, 43, .78); color: #fff; font-weight: 600; display: none; }
+  body.recording #recDot { display: block; }
+  #recDot i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--red); margin-right: 6px; animation: blink 1s steps(2) infinite; vertical-align: -1px; }
+  @keyframes blink { 50% { opacity: .25; } }
+
+  /* the button bar, lower part of the screen (outside the picture) */
+  #bar { flex: 0 0 auto; display: flex; flex-direction: column; gap: 13px; align-items: stretch; padding: 8px 0 4px; }
+  #bar .grp { flex-wrap: wrap; padding-top: 9px; }
+  .grp { display: flex; gap: 4px; align-items: stretch; padding: 4px 6px 5px; border-radius: 11px; background: var(--bar2); position: relative; }
+  .grp > .gl { position: absolute; top: -7px; left: 10px; font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); background: var(--bar); padding: 0 5px; border-radius: 4px; }
+  button { font: inherit; color: var(--ink); background: #3a3846; border: 1px solid #4a4858; border-radius: 8px; padding: 6px 9px 5px; cursor: pointer; min-width: 40px;
+           display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; user-select: none; -webkit-user-select: none; transition: background .12s, border-color .12s, transform .05s; }
+  button:hover { background: #46434f; }
+  button:active, button.hit { transform: translateY(1px); background: #504c5c; }
+  button .t { font-weight: 600; white-space: nowrap; }
+  button .m { font-size: 9.5px; color: var(--dim); white-space: nowrap; min-height: 11px; }
+  button.tog::before { content: ""; width: 26px; height: 4px; border-radius: 3px; background: #55525f; margin-bottom: 2px; }
+  button.tog.on::before { background: var(--c, var(--mint)); box-shadow: 0 0 8px var(--c, var(--mint)); }
+  button.tog.on { border-color: var(--c, var(--mint)); }
+  button.learn { outline: 2px dashed var(--butter); outline-offset: 2px; }
+  .val { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 50px; padding: 0 2px; }
+  .val .v { font: 600 15px/1.1 ui-monospace, Consolas, Menlo, monospace; color: var(--butter); }
+  .val .u { font-size: 9.5px; color: var(--dim); }
+  button.small { min-width: 28px; padding: 4px 5px; }
+  button.small .t { font-size: 15px; line-height: 1; }
+  #b_record.on { --c: var(--red); background: #5a2f39; }
+  #b_record .t::before { content: "● "; color: var(--red); }
+
+  /* panels */
+  .panel { position: absolute; left: 12px; top: 12px; width: min(580px, 46%); max-height: calc(100% - 24px); overflow: auto; padding: 16px 20px;
+           border-radius: 14px; background: rgba(35, 34, 43, .96); color: var(--ink); box-shadow: 0 10px 40px rgba(0,0,0,.35); display: none; z-index: 5; }
+  .panel.on { display: block; }
+  .panel h2 { margin: 0 0 8px; font-size: 17px; color: var(--rose); }
+  .panel h3 { margin: 14px 0 4px; font-size: 13px; color: var(--butter); }
+  .panel p, .panel li { color: #dcd7e6; line-height: 1.5; }
+  .panel table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  .panel td, .panel th { border-bottom: 1px solid #3d3b49; padding: 3px 6px; text-align: left; }
+  .panel th { color: var(--dim); font-weight: 600; }
+  .panel kbd { font: 11px ui-monospace, Consolas, monospace; background: #45424f; border-radius: 4px; padding: 1px 5px; }
+  .panel .x { position: absolute; right: 12px; top: 10px; min-width: 0; padding: 2px 9px; }
+  .panel .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .panel .row button { flex-direction: row; }
+  .learned { color: var(--butter); }
+  select { font: inherit; color: var(--ink); background: #3a3846; border: 1px solid #4a4858; border-radius: 6px; padding: 3px 5px; }
+  body.nobar #bar { display: none; }
+  /* the one control always on the picture (Harness 6: info and buttons start hidden, so phones see the whole picture) */
+  #b_panels { position: absolute; right: 10px; bottom: 10px; z-index: 6; min-width: 0; width: 38px; height: 38px; padding: 0; border-radius: 50%;
+              background: rgba(35, 34, 43, .45); border-color: rgba(255, 255, 255, .18); color: rgba(255, 255, 255, .8); font-size: 18px; }
+  body.recording #b_panels { bottom: 48px; }
+  /* the ride gauge (A3): how far round the ride you are, always on the picture (F hides it) */
+  #gauge { position: absolute; left: 12px; bottom: 12px; width: min(260px, calc(100% - 80px)); padding: 7px 11px 9px; border-radius: 10px; background: rgba(20, 18, 26, .55);
+           backdrop-filter: blur(3px); pointer-events: none; color: #f4f1f8; z-index: 4; }
+  #gauge .top { display: flex; align-items: baseline; gap: 8px; }
+  #gauge #g_pct { font: 600 22px/1 ui-monospace, Consolas, Menlo, monospace; color: var(--butter); min-width: 52px; }
+  #gauge #g_ft { font: 12px ui-monospace, Consolas, Menlo, monospace; color: #e6e1ee; }
+  #gauge #g_where { display: none; }   /* (B5: no labels on the rooms) */
+  #gauge .track { height: 4px; border-radius: 3px; background: rgba(255, 255, 255, .14); overflow: hidden; }
+  #gauge #g_fill { height: 100%; width: 0; background: var(--peach); }
+  body.nogauge #gauge { display: none; }
+  /* A5: the slider that moves the cars along the track */
+  #gauge #g_seek { display: block; width: 100%; margin: 6px 0 0; pointer-events: auto; accent-color: var(--peach); cursor: pointer; height: 16px; }
+  .timer { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 96px; padding: 0 6px; }
+  .timer .v { font: 600 22px/1.05 ui-monospace, Consolas, Menlo, monospace; color: var(--butter); letter-spacing: .02em; }
+  .timer .u { font-size: 9.5px; color: var(--dim); }
+</style>
+</head>
+<body class="nohud nobar">
+<div id="stage">
+  <canvas id="c"></canvas>
+  <div id="toast"></div>
+  <div id="loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#ffd2a8;font-size:18px">Building the room of eyes…</div>
+  <div id="gauge"><div class="top"><span id="g_pct">0%</span><span id="g_ft">0 ft</span></div><div id="g_where">boarding</div><div class="track"><div id="g_fill"></div></div><input id="g_seek" type="range" min="0" max="1000" value="0" title="Drag to move the cars along the track (A5)" aria-label="Move along the ride"></div>
+  <div id="recDot"><i></i><span id="recTime">0:00</span></div>
+  <button id="b_panels" title="show / hide the display on the right (H)" aria-label="show or hide the controls">☰</button>
+
+  <div class="panel" id="helpPanel">
+    <button class="x" data-close>✕</button>
+    <h2>CT72.A5 · Eyes</h2>
+    <p>The <b>room of eyes</b> from the CT61 dark ride, on its own. There is no mine car: you ride the track itself, unseen, at about the height of a seated rider.
+      You start at the room's timber-framed portal, the track running in. Inside, a chamber cut in the rock: eighteen giant eyeballs
+      hang from the roof on cords at different heights, ten more are half sunk in the walls, and the floor all round the track is a living rug of hundreds of small eyes
+      half buried in the dirt. <b>The big eyes and about a third of the floor eyes turn to follow you</b> as you pass (a little late, now and then darting); the rest lie
+      looking up. The track runs an S-curve through the room and out of the far portal into <b>darkness</b>, where pairs of eyes open in the walls and watch you go
+      until the ride stops; a dim light on the rails keeps the track in sight to the end. Reset (<kbd>Backspace</kbd>) to ride again. The whole ride is about 40 seconds.</p>
+    <p>The <b>ride gauge</b> at the bottom left shows how far through the ride you are (<kbd>F</kbd> hides it); drag its slider to go to any point.
+      The display (the info and the buttons) is on the right of the picture. It starts hidden (so a phone sees the whole picture): <kbd>H</kbd> or the round <b>☰</b> button at the bottom right shows or hides it.</p>
+    <h3>Buttons and keys</h3>
+    <table>
+      <tr><th>Button</th><th>Key</th><th>What it does</th></tr>
+      <tr><td>Reset</td><td><kbd>Backspace</kbd></td><td>back to the start of the tunnel; the ride starts again a second later</td></tr>
+      <tr><td>Forward ▶ / Pause ❚❚</td><td><kbd>Enter</kbd> / <kbd>P</kbd> (<kbd>Space</kbd> toggles)</td><td>run / freeze the ride and the timer (you can still look round)</td></tr>
+      <tr><td>● Record</td><td><kbd>R</kbd></td><td>a movie of the picture with sound, at the picture's own size and the display's speed; press again to stop and the MP4 downloads</td></tr>
+      <tr><td>Stop all</td><td><kbd>X</kbd></td><td>stop where you are (press again: go on)</td></tr>
+      <tr><td>Stops</td><td><kbd>S</kbd></td><td>stop for 4 s in the middle of the room of eyes (off at start)</td></tr>
+      <tr><td>Speed − / +</td><td><kbd>-</kbd> <kbd>=</kbd></td><td>how fast you ride (knob 1, the fader)</td></tr>
+      <tr><td>View</td><td><kbd>V</kbd></td><td>from the seat / from a little behind and above</td></tr>
+      <tr><td>Ahead ◀ ▶ ▲ ▼</td><td><kbd>0</kbd> <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd></td><td>look ahead / left / right / up / down (or drag the picture; the wheel zooms)</td></tr>
+      <tr><td>Turn look</td><td><kbd>T</kbd></td><td>your head turns toward the eyes and into the curves by itself (on at start)</td></tr>
+      <tr><td>Dust</td><td><kbd>U</kbd></td><td>dust hanging in the air (off at start since A5; <code>?dust=1</code> starts with it)</td></tr>
+      <tr><td>Car</td><td><kbd>C</kbd></td><td>the mine cars are shown / hidden (shown at start; <code>?car=0</code> starts without)</td></tr>
+      <tr><td>Lights</td><td><kbd>L</kbd></td><td>turn the lights on: an even light on everything, so nothing is hidden in black (off at start; <code>?lightson=1</code> starts lit)</td></tr>
+      <tr><td>Shadows</td><td><kbd>O</kbd></td><td>shadows on / off (on at start; <code>?shadows=0</code> starts without)</td></tr>
+      <tr><td>House − / +</td><td><kbd>5</kbd> <kbd>6</kbd></td><td>the dim work light (knob 4); it is always off in the darkness after the room</td></tr>
+      <tr><td>Eyes</td><td><kbd>E</kbd></td><td>the eyes follow you / the eyes look away and wander</td></tr>
+      <tr><td>Sound</td><td><kbd>M</kbd></td><td>the wheels on the rail joints, debris on the track, drips, the drone (on at start: it plays from your first click or key; <code>?sound=0</code> starts silent)</td></tr>
+      <tr><td>☰</td><td><kbd>H</kbd></td><td>show / hide the display on the right (the info and the buttons together)</td></tr>
+      <tr><td>Info</td><td><kbd>I</kbd></td><td>show / hide just the info at the top of the display</td></tr>
+      <tr><td>—</td><td><kbd>D</kbd></td><td>show / hide the buttons</td></tr>
+      <tr><td>—</td><td><kbd>F</kbd></td><td>show / hide the ride gauge</td></tr>
+    </table>
+    <h3>MIDI</h3>
+    <p>The CT61 MIDI layout, unchanged. X-TOUCH MINI: knob 1 = speed, 4 = house light, 6 = look left / right, 7 = look up / down, 8 = zoom (knobs 2, 3 and 5 were
+      the CT61 sun, shafts and dispatch time and do nothing here); pushing knob 1 = Stop all, knob 3 = Dust, knobs 6 and 7 = look ahead; fader = speed.
+      Top row = Reset, Forward, Pause, Record, Stop all, Shadows, View, Ahead; bottom row = Stops, Turn look, Lights, Dust, Eyes, Sound, buttons, Info. (A3: Shadows and Lights took the places of CT61's Dispatch and Glass; pushing knob 2 = Lights, knob 5 = Shadows.)
+      Launchpad Mini: rows 1–2 = the same 16 buttons (with Shadows and Lights); rows 3–8 = ladders (column = step): speed, (sun), (shafts), house light, look direction, (dispatch).
+      Any other MIDI device: right-click any on-screen button, then press a MIDI control, to assign it (kept in this browser).</p>
+    <p>URL options: <code>?speed=0.7</code>, <code>?flooreyes=600</code> (the floor eyes, 0–10000), <code>?trackers=0.33</code> (the share of floor eyes that follow you), <code>?exposure=1.3</code>, <code>?lights=6</code>, <code>?shadow=2048</code>,
+      <code>?fps=30</code>, <code>?w=1920&amp;h=1080</code>, <code>?recw=1920&amp;rech=1080</code> (cap the movie size), <code>?t=20</code> (start 20 s in), <code>?gauge=0</code>, <code>?sound=0</code>, <code>?midi=0</code>.</p>
+  </div>
+
+  <div class="panel" id="midiPanel">
+    <button class="x" data-close>✕</button>
+    <h2>MIDI</h2>
+    <p id="midiStatus">—</p>
+    <div id="midiDevices"></div>
+    <p>Right-click any button below the picture, then press the MIDI control you want for it (Esc cancels). Learned controls are kept in this browser
+      and shown in <span class="learned">yellow</span>; the defaults come from <code>CT72.A5.Eyes_midimap.js</code>.</p>
+    <div class="row">
+      <button id="midiConnect"><span class="t">Connect MIDI devices</span></button>
+      <button id="midiForget"><span class="t">Forget learned MIDI</span></button>
+      <label style="align-self:center">Movie frame rate <select id="fpsSel"><option value="60">60 fps</option><option value="30">30 fps</option></select></label>
+    </div>
+  </div>
+</div>
+
+<div id="side">
+<div id="hud"></div>
+<div id="hint"><b>H</b> or ☰ = show / hide this display · <b>R</b> = record a movie · <b>?</b> help<br>
+  drag = look round · wheel = zoom · double-click = look ahead · right-click a button = assign a MIDI control · <b>D</b> buttons · <b>I</b> info</div>
+<div id="bar">
+  <div class="grp"><span class="gl">Run</span>
+    <button data-action="reset"><span class="t">Reset</span><span class="m"></span></button>
+    <button data-action="forward" class="tog" style="--c:var(--mint)"><span class="t">Forward ▶</span><span class="m"></span></button>
+    <button data-action="pause" class="tog" style="--c:var(--butter)"><span class="t">Pause ❚❚</span><span class="m"></span></button>
+    <button data-action="record" id="b_record" class="tog"><span class="t">Record</span><span class="m"></span></button>
+    <div class="timer"><span class="v" id="v_timer">00:00.0</span><span class="u">timer</span></div>
+  </div>
+  <div class="grp"><span class="gl">Ride</span>
+    <button data-action="stopAll" class="tog" style="--c:var(--red)"><span class="t">Stop all</span><span class="m"></span></button>
+    <button style="display:none" data-action="dispatchNow"><span class="t">Dispatch</span><span class="m"></span></button>
+    <button data-action="showStops" class="tog" style="--c:var(--peach)"><span class="t">Stops</span><span class="m"></span></button>
+    <button data-action="slower" class="small"><span class="t">−</span><span class="m"></span></button>
+    <div class="val"><span class="v" id="v_speed">1.00×</span><span class="u">speed</span></div>
+    <button data-action="faster" class="small"><span class="t">+</span><span class="m"></span></button>
+    <button style="display:none" data-action="sooner" class="small"><span class="t">−</span><span class="m"></span></button>
+    <div class="val" style="display:none"><span class="v" id="v_every">16 s</span><span class="u">dispatch every</span></div>
+    <button style="display:none" data-action="later" class="small"><span class="t">+</span><span class="m"></span></button>
+  </div>
+  <div class="grp"><span class="gl">Look</span>
+    <button data-action="view" class="tog" style="--c:var(--sky)"><span class="t" id="t_view">View: seat</span><span class="m"></span></button>
+    <button data-action="lookAhead" class="tog" style="--c:var(--sky)"><span class="t">Ahead</span><span class="m"></span></button>
+    <button data-action="lookLeft" class="small"><span class="t">◀</span><span class="m"></span></button>
+    <button data-action="lookRight" class="small"><span class="t">▶</span><span class="m"></span></button>
+    <button data-action="lookUp" class="small"><span class="t">▲</span><span class="m"></span></button>
+    <button data-action="lookDown" class="small"><span class="t">▼</span><span class="m"></span></button>
+    <button data-action="turnLook" class="tog" style="--c:var(--sky)"><span class="t">Turn look</span><span class="m"></span></button>
+  </div>
+  <div class="grp"><span class="gl">Light</span>
+    <button style="display:none" data-action="sunDown" class="small"><span class="t">−</span><span class="m"></span></button>
+    <div class="val" style="display:none"><span class="v" id="v_sun">100%</span><span class="u">sun</span></div>
+    <button style="display:none" data-action="sunUp" class="small"><span class="t">+</span><span class="m"></span></button>
+    <button style="display:none" data-action="beamsDown" class="small"><span class="t">−</span><span class="m"></span></button>
+    <div class="val" style="display:none"><span class="v" id="v_beams">100%</span><span class="u">shafts</span></div>
+    <button style="display:none" data-action="beamsUp" class="small"><span class="t">+</span><span class="m"></span></button>
+    <button data-action="dust" class="tog" style="--c:var(--butter)"><span class="t">Dust</span><span class="m"></span></button>
+    <button style="display:none" data-action="glass" title="the windows in another order (G)"><span class="t">Glass</span><span class="m"></span></button>
+    <button data-action="houseDown" class="small"><span class="t">−</span><span class="m"></span></button>
+    <div class="val"><span class="v" id="v_house">25%</span><span class="u">house</span></div>
+    <button data-action="houseUp" class="small"><span class="t">+</span><span class="m"></span></button>
+    <button data-action="eyes" class="tog" style="--c:var(--lilac)"><span class="t">Eyes</span><span class="m"></span></button>
+    <button data-action="lights" class="tog" style="--c:var(--butter)" title="turn the lights on: everything lit (L)"><span class="t">Lights</span><span class="m"></span></button>
+    <button data-action="car" class="tog" style="--c:var(--sky)" title="mine car shown / hidden (C)"><span class="t">Car</span><span class="m"></span></button>
+    <button data-action="shadows" class="tog" style="--c:var(--sky)" title="shadows on / off (O)"><span class="t">Shadows</span><span class="m"></span></button>
+  </div>
+  <div class="grp"><span class="gl">Setup</span>
+    <button data-action="hud" class="tog" style="--c:var(--butter)" title="the text in the corners of the picture (I or H)"><span class="t">Info</span><span class="m"></span></button>
+    <button data-action="sound" class="tog" style="--c:var(--mint)"><span class="t">Sound</span><span class="m"></span></button>
+    <button id="b_midi"><span class="t">MIDI</span><span class="m" id="midiChip">off</span></button>
+    <button id="b_help"><span class="t">?</span><span class="m">help</span></button>
+  </div>
+</div>
+
+</div>
+
+<!-- all local: three.js r186 (MIT), mp4-muxer 5.2.1 (MIT), the CT45 MIDI layer -->
+<script src="CT72.A5.Eyes_lib/three.r186.min.js"></script>
+<script src="CT72.A5.Eyes_lib/mp4-muxer.5.2.1.js"></script>
+<script src="CT72.A5.Eyes_lib/ct45.profiles.js"></script>
+<script src="CT72.A5.Eyes_lib/ct45midi.js"></script>
+<script src="CT72.A5.Eyes_midimap.js"></script>
+<script src="CT72.A5.Eyes_sound.js"></script>
+<script src="CT72.A5.Eyes_rec.js"></script>
+<script src="CT72.A5.Eyes_assets.js"></script>
+<script src="CT72.A5.Eyes_assets2.js"></script>
+<script src="CT72.A5.Eyes_assets3.js"></script>
+<script src="CT72.A5.Eyes_core.js"></script>
+<script src="CT72.A5.Eyes_cars.js"></script>
+<script src="rooms/dark.js"></script>
+<script src="rooms/eyes.js"></script>
+<script src="CT72.A5.Eyes_ride.js"></script>
+<script src="CT72.A5.Eyes_main.js"></script>
+<script src="CT72.A5.Eyes_midi.js"></script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>rooms</title></head><body><h1>CT61 Darkride room modules (B6)</h1>
+<p>(CT72.A5.Eyes: only <code>eyes.js</code> is here (from CT61.B6; A2: a bigger room, more eyes, some floor eyes tracking), plus <code>dark.js</code>, new: the dark tunnel before the room (head piece <code>start</code>, the dispatch point) and the darkness after it (tail piece <code>darkA</code>, where the ride ends, <code>endS</code>). The table below is CT61.B6's; the other rooms are in <code>CT61.B6.Darkride/rooms/</code>.)</p>
+<p>Each room of the ride is one file here. A later version can take any of them as they are, put them in a different order, use one twice, or leave one out, without touching the room's code.</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Room</th>
+<th>Pieces of track (ids)</th>
+<th>Exports</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>station.js</code></td>
+<td>the entry way (loading area)</td>
+<td>head: <code>station</code>; tail: <code>return</code></td>
+<td><code>endS</code> (where the ride ends)</td>
+</tr>
+<tr>
+<td><code>windows.js</code></td>
+<td>the hall of windows</td>
+<td><code>corner1</code>, <code>hallIn</code>, <code>hall</code>, <code>corner2</code></td>
+<td><code>hallWins</code>, <code>setGlass</code></td>
+</tr>
+<tr>
+<td><code>descent.js</code></td>
+<td>going down a level (fast, with curves)</td>
+<td>prefix + <code>In</code>, <code>A</code>, <code>BendA</code>, <code>B</code>, <code>BendB</code>, <code>Out</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>crates.js</code></td>
+<td>the room of crates</td>
+<td><code>cratesIn</code>, <code>cratesA</code>, <code>cratesB</code>, <code>cratesOut</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>prison.js</code></td>
+<td>the room of jails</td>
+<td><code>prison</code>, <code>cellOut</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>dolls.js</code></td>
+<td>the doll room (reception line, suitcases)</td>
+<td><code>dolls</code>, <code>dollsOut</code></td>
+<td><code>candles</code></td>
+</tr>
+<tr>
+<td><code>bees.js</code></td>
+<td>the room of bees</td>
+<td><code>bees</code></td>
+<td><code>swarm</code></td>
+</tr>
+<tr>
+<td><code>eyes.js</code></td>
+<td>the room of eyes (hanging, wall and floor eyes)</td>
+<td><code>eyesIn</code>, <code>eyesA</code>, <code>eyesB</code></td>
+<td><code>eyes</code>, <code>floor</code></td>
+</tr>
+<tr>
+<td><code>locusts.js</code></td>
+<td>the room of locusts</td>
+<td><code>gate</code>, <code>plainsA</code>..<code>plainsD</code></td>
+<td><code>plains</code></td>
+</tr>
+<tr>
+<td><code>lifthill.js</code></td>
+<td>up three levels: the lift hill, the CT68 dolls</td>
+<td><code>hillIn</code>, <code>hillB</code>, <code>hillOut</code></td>
+<td><code>carolers</code></td>
+</tr>
+</tbody>
+</table>
+<p>What every room needs from outside its file:</p>
+<ul>
+<li><code>CT61.B6.Darkride_core.js</code> (<code>CT61Core</code>: rock, tunnels, portals, textures, geometry helpers, flicker).</li>
+<li><code>CT61.B6.Darkride_cars.js</code> (<code>CT61Cars</code>), for the rooms that put old cars in the scenery.</li>
+<li>the pictures in <code>CT61.B6.Darkride_assets*.js</code>.</li>
+<li><code>bees.js</code> needs <code>CT61.B6.Darkride_bees.js</code>; <code>locusts.js</code> needs <code>CT61.B6.Darkride_plains.js</code>; <code>lifthill.js</code> uses <code>CT61.B6.Darkride_lib/ct68_carolers.js</code> if it is loaded, and builds without the dolls if it is not.</li>
+</ul>
+<h2>The shape of a module</h2>
+<pre><code class="language-js">CT61Rooms.name = {
+  title: 'the room of …',
+  zones: { zoneName: 'what the zone is called' },
+  pieces(o) { return [ /* pieces of track, in order */ ]; },
+  tailPieces(o) { … },         // only the station: the pieces that close the loop
+  async build(ctx, inst) {     // build the room round inst.pieces (integrated: s0, s1, length, y0, th0 …)
+    …
+    return { update(t, dt, cam, S, cars) { … }, /* anything main.js needs */ };
+  },
+  stops(ctx, inst) { return [ /* { s, kind: 'show', hold, name } */ ]; },
+};
+</code></pre>
+<p>A piece is <code>{ id, kind: 'S', len, rise }</code> (a straight, climbing or falling) or <code>{ id, kind: 'T', ang, r }</code> (a turn, + = left). Other fields:</p>
+<ul>
+<li><code>hw</code>, <code>h</code> and <code>spring</code>: the tunnel's half width, height and where its vault starts. With these, the ride builds the rock bore, the timber sets, the lanterns and the rubble itself.</li>
+<li><code>room: true</code>: the ride builds no tunnel there, because the module builds the chamber.</li>
+<li><code>speed</code> (m/s) and <code>zone</code>.</li>
+<li><code>face</code>: where to look, as <code>[[fraction, degrees]]</code>.</li>
+<li><code>gaze</code>: a tilt of the look, up (+) or down (−).</li>
+<li><code>ease</code>: <code>in</code>, <code>out</code> or <code>lin</code>, for how the grade starts and ends.</li>
+<li><code>fast</code>: let the car run away downhill.</li>
+<li><code>lift</code>: the chain sound.</li>
+<li><code>noLanterns</code>, <code>noDebris</code>, <code>rubbleSides</code>, <code>setsAt</code> and <code>bulbs</code>: the mine furniture.</li>
+<li><code>fit: 0 / 1</code>: this straight's length is solved so that the loop closes.</li>
+</ul>
+<p>The context <code>ctx</code> has the following:</p>
+<ul>
+<li><code>T</code> (three.js) and <code>C</code> (<code>CT61Core</code>).</li>
+<li><code>scene</code>, <code>group</code> and <code>path</code>.</li>
+<li><code>P</code>, every piece by its id.</li>
+<li><code>put(materialKey, geometry, castShadow)</code>: static geometry. It is merged per material and culled in 16 m cells.</li>
+<li><code>mat(key)</code> and <code>MAT</code>.</li>
+<li><code>specs</code>: lights for the light pool, as <code>{ s, kind, pos, target, color, intensity, angle, … }</code>.</li>
+<li><code>glows</code>: bulbs, as <code>[position, colour, size, flicker]</code>.</li>
+<li><code>anim</code>: per-frame functions.</li>
+<li><code>A</code>: the pictures.</li>
+<li><code>opts</code>: the URL options.</li>
+<li><code>prev(p)</code> and <code>next(p)</code>.</li>
+<li><code>rod(key, A, B, r)</code>: a bar from A to B.</li>
+<li><code>carFactory()</code>.</li>
+</ul>
+<h2>Putting rooms in a ride</h2>
+<p>The order is the <code>RIDE</code> list at the top of <code>CT61.B6.Darkride_ride.js</code>. It holds room instances and plain tunnel pieces:</p>
+<pre><code class="language-js">{ room: 'station', part: 'head' },
+{ room: 'windows' },
+{ room: 'descent', o: { prefix: 'down', drop: 8.4, grade: 0.22, lenA: 12, ang1: -40, ang2: 40, r: 9 } },
+…
+tun({ id: 'arch', kind: 'S', len: 0, fit: 0, hw: 1.5, h: 3.0 }),
+…
+{ room: 'station', part: 'tail' },
+</code></pre>
+<p>The loop must close. Two straights with <code>fit: 0</code> and <code>fit: 1</code> take up the difference in plan; they must not be parallel. The last climb (<code>upLastB</code>) takes up the difference in height. Check a new order with the browser console (a warning if the loop closes badly). Then look for rooms that overlap: each room is built round its own pieces, and nothing stops two rooms meeting in the rock.</p>
+<p>Two rules for the room of locusts: the track must head west into it, and its doors are in its east wall, so nothing else may sit just west of that wall.</p></body></html>
